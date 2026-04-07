@@ -1,0 +1,36 @@
+services:
+  # ── PostgreSQL 17 ───────────────────────────────────────────
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: paperclip
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: paperclip
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paperclip"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Cloudflare Tunnel ───────────────────────────────────────
+  # Runs on host network so it can proxy to Paperclip on localhost:3100.
+  # Configure the tunnel's public hostname in Cloudflare Zero Trust dashboard:
+  #   Service → http://localhost:3100
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    network_mode: host
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pg_data:

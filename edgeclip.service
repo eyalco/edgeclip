@@ -1,0 +1,33 @@
+# Systemd unit for EdgeClip (Paperclip + infra).
+#
+# Install:
+#   sudo cp edgeclip.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now edgeclip
+#
+# Logs:
+#   journalctl -u edgeclip -f
+#
+# Adjust WorkingDirectory and User if your layout differs.
+
+[Unit]
+Description=EdgeClip — Paperclip Agent Orchestration
+After=network-online.target docker.service
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/edgeclip
+EnvironmentFile=/root/edgeclip/.env
+ExecStartPre=/usr/bin/docker compose -f /root/edgeclip/docker-compose.yml up -d
+ExecStart=/root/edgeclip/start-service.sh
+ExecStop=/root/edgeclip/stop.sh
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
