@@ -15,6 +15,13 @@ set -a
 source "$SCRIPT_DIR/.env"
 set +a
 
+for var in POSTGRES_PASSWORD BETTER_AUTH_SECRET PAPERCLIP_DOMAIN CLOUDFLARE_TUNNEL_TOKEN; do
+  if [ -z "${!var:-}" ]; then
+    echo "ERROR: $var is not set in .env"
+    exit 1
+  fi
+done
+
 # Start infrastructure
 docker compose -f "$SCRIPT_DIR/docker-compose.yml" up -d
 
@@ -24,7 +31,7 @@ until docker compose -f "$SCRIPT_DIR/docker-compose.yml" exec -T db \
   sleep 1
 done
 
-# Start Paperclip in background
+# Paperclip environment
 export PAPERCLIP_HOME="$SCRIPT_DIR/data"
 export HOST="${EDGECLIP_BIND_HOST:-127.0.0.1}"
 export PORT="3100"
@@ -38,8 +45,17 @@ export PAPERCLIP_AUTH_BASE_URL_MODE="explicit"
 export BETTER_AUTH_SECRET
 export PAPERCLIP_SECRETS_MASTER_KEY="${PAPERCLIP_SECRETS_MASTER_KEY:-}"
 export PAPERCLIP_AGENT_JWT_SECRET="${PAPERCLIP_AGENT_JWT_SECRET:-${BETTER_AUTH_SECRET}}"
+export PAPERCLIP_MIGRATION_AUTO_APPLY="true"
+export PAPERCLIP_OPEN_ON_LISTEN="false"
 
-nohup paperclipai run >> "$SCRIPT_DIR/paperclip.log" 2>&1 &
+# Create config non-interactively if it doesn't exist yet
+if [ ! -f "$SCRIPT_DIR/data/default/config.json" ]; then
+  echo "First run — running onboard..."
+  paperclipai onboard --yes --data-dir "$SCRIPT_DIR/data"
+fi
+
+# Start Paperclip in background
+nohup paperclipai run --data-dir "$SCRIPT_DIR/data" >> "$SCRIPT_DIR/paperclip.log" 2>&1 &
 echo $! > "$PID_FILE"
 
 echo "EdgeClip started (PID $(cat "$PID_FILE"))"

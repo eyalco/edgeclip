@@ -27,7 +27,7 @@ Paperclip Server (host, port 3100)
 - **Node.js** v20+
 - **Docker** and Docker Compose (for PostgreSQL + Cloudflare Tunnel)
 - **Claude Code CLI** (`npm install -g @anthropic-ai/claude-code`)
-- A **Cloudflare account** with a domain
+- A **Cloudflare account** with a domain and tunnel token
 - **Claude Max plan** (or an Anthropic API key)
 
 ## Quick Start
@@ -37,16 +37,17 @@ Paperclip Server (host, port 3100)
 git clone https://github.com/YOUR_USER/edgeclip.git
 cd edgeclip
 
-# 2. Run setup (installs paperclipai globally, creates .env)
-chmod +x setup.sh start.sh stop.sh start-service.sh
+# 2. First run — installs paperclipai, creates .env template, then exits
 ./setup.sh
 
 # 3. Edit .env with your values
 nano .env
 
-# 4. Start everything (Ctrl+C to stop)
-./start.sh
+# 4. Second run — validates .env, installs + starts systemd service
+./setup.sh
 ```
+
+After setup, EdgeClip runs as a persistent systemd service that survives reboots. Migrations and onboarding run automatically with no prompts.
 
 ## .env Variables
 
@@ -72,38 +73,30 @@ Ingress rules are managed remotely in the Cloudflare dashboard (Zero Trust > Net
 
 ## First Login
 
-On first start, Paperclip prints a **board claim URL** to the console:
+On first start, Paperclip prints a **board claim URL** to the log:
 
 ```
 /board-claim/<token>?code=<code>
 ```
 
-Visit `https://YOUR_DOMAIN/board-claim/<token>?code=<code>` to claim admin ownership.
+Find it with `tail -f paperclip.log` or `journalctl -u edgeclip`, then visit `https://YOUR_DOMAIN/board-claim/<token>?code=<code>` to claim admin ownership.
 
-## Commands
+## Service Management
 
 | Command | What it does |
 |---|---|
-| `./setup.sh` | One-time: install paperclipai, create .env |
-| `./start.sh` | Start DB + tunnel + Paperclip server (foreground, Ctrl+C to stop) |
+| `sudo systemctl status edgeclip` | Check service status |
+| `sudo systemctl stop edgeclip` | Stop EdgeClip |
+| `sudo systemctl start edgeclip` | Start EdgeClip |
+| `sudo systemctl restart edgeclip` | Restart EdgeClip |
+| `journalctl -u edgeclip -f` | Tail service logs |
+| `tail -f paperclip.log` | Tail Paperclip application logs |
+
+## Other Commands
+
+| Command | What it does |
+|---|---|
+| `./start.sh` | Run in foreground (dev/debug, Ctrl+C to stop) |
 | `./stop.sh` | Stop Docker infrastructure (DB + tunnel) |
-| `make status` | Show running services |
-| `make logs` | Tail Docker logs (DB + tunnel) |
 | `make db-shell` | Open psql shell |
 | `make update` | Update paperclipai to latest version |
-| `make restart` | Stop + start |
-
-## Running as a systemd Service
-
-For production on a Linux server:
-
-```bash
-# Adjust paths in edgeclip.service if not at /root/edgeclip
-sudo cp edgeclip.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now edgeclip
-
-# View logs
-journalctl -u edgeclip -f
-tail -f paperclip.log
-```

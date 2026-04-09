@@ -68,5 +68,13 @@ export PAPERCLIP_AUTH_BASE_URL_MODE="explicit"
 export BETTER_AUTH_SECRET
 export PAPERCLIP_SECRETS_MASTER_KEY="${PAPERCLIP_SECRETS_MASTER_KEY:-}"
 export PAPERCLIP_AGENT_JWT_SECRET="${PAPERCLIP_AGENT_JWT_SECRET:-${BETTER_AUTH_SECRET}}"
+export PAPERCLIP_MIGRATION_AUTO_APPLY="true"
+export PAPERCLIP_OPEN_ON_LISTEN="false"
 
-exec paperclipai run
+# Create config non-interactively if it doesn't exist yet
+if [ ! -f "$SCRIPT_DIR/data/default/config.json" ]; then
+  echo "First run — running onboard..."
+  paperclipai onboard --yes --data-dir "$SCRIPT_DIR/data"
+fi
+
+exec paperclipai run --data-dir "$SCRIPT_DIR/data"
