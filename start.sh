@@ -72,7 +72,7 @@ export PAPERCLIP_MIGRATION_AUTO_APPLY="true"
 export PAPERCLIP_OPEN_ON_LISTEN="false"
 
 # Create config non-interactively if it doesn't exist yet
-if [ ! -f "$SCRIPT_DIR/data/default/config.json" ]; then
+if [ ! -f "$SCRIPT_DIR/data/instances/default/config.json" ]; then
   echo "First run — running onboard..."
   paperclipai onboard --yes --data-dir "$SCRIPT_DIR/data"
 fi
