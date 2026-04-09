@@ -13,7 +13,7 @@ set -a
 source "$SCRIPT_DIR/.env"
 set +a
 
-for var in POSTGRES_PASSWORD BETTER_AUTH_SECRET PAPERCLIP_DOMAIN; do
+for var in POSTGRES_PASSWORD BETTER_AUTH_SECRET PAPERCLIP_DOMAIN CLOUDFLARE_TUNNEL_TOKEN; do
   if [ -z "${!var:-}" ]; then
     echo "ERROR: $var is not set in .env"
     exit 1

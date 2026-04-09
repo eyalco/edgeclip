@@ -52,10 +52,12 @@ nano .env
 
 | Variable | Required | How to get |
 |---|---|---|
+| `CLOUDFLARE_TUNNEL_TOKEN` | Yes | `cloudflared tunnel token <TUNNEL_NAME>` |
 | `POSTGRES_PASSWORD` | Yes | `openssl rand -base64 24` |
 | `PAPERCLIP_DOMAIN` | Yes | The public hostname you configured in the tunnel |
 | `BETTER_AUTH_SECRET` | Yes | `openssl rand -base64 32` |
 | `PAPERCLIP_SECRETS_MASTER_KEY` | Recommended | `openssl rand -base64 32` |
+| `PAPERCLIP_AGENT_JWT_SECRET` | No | `openssl rand -base64 32` (falls back to `BETTER_AUTH_SECRET`) |
 | `EDGECLIP_BIND_HOST` | No | `127.0.0.1` (default) or `0.0.0.0` for local dev with Docker Desktop |
 
 ## Cloudflare Tunnel Setup
@@ -64,8 +66,9 @@ nano .env
 2. Authenticate: `cloudflared tunnel login`
 3. Create tunnel: `cloudflared tunnel create edgeclip`
 4. Route DNS: `cloudflared tunnel route dns edgeclip edgeclip.yourdomain.com`
-5. Copy the credentials JSON from `~/.cloudflared/<TUNNEL_ID>.json` into `cloudflared/credentials.json`
-6. Update `cloudflared/config.yml` with your tunnel ID and hostname
+5. Get the token: `cloudflared tunnel token edgeclip` -- set as `CLOUDFLARE_TUNNEL_TOKEN` in `.env`
+
+Ingress rules are managed remotely in the Cloudflare dashboard (Zero Trust > Networks > Tunnels).
 
 ## First Login
 

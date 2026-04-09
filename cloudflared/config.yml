@@ -1,7 +1,0 @@
-tunnel: 0c6cece8-4e85-48e4-8899-a7b3a1c2ebe0
-credentials-file: /etc/cloudflared/credentials.json
-
-ingress:
-  - hostname: researchclip.pianalytics.ai
-    service: http://localhost:3100
-  - service: http_status:404

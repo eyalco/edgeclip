@@ -18,15 +18,13 @@ services:
       retries: 5
 
   # ── Cloudflare Tunnel ───────────────────────────────────────
-  # Host network so cloudflared reaches Paperclip via localhost (loopback).
-  # On a remote server this means port 3100 never needs to leave 127.0.0.1.
+  # Host network so cloudflared reaches Paperclip via localhost.
+  # Ingress rules are managed remotely in the Cloudflare dashboard.
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     network_mode: host
-    command: tunnel --config /etc/cloudflared/config.yml run
-    volumes:
-      - ./cloudflared:/etc/cloudflared:ro
+    command: tunnel run --token ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env}
     depends_on:
       db:
         condition: service_healthy

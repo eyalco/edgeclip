@@ -1,6 +1,5 @@
 .env
 data/
 node_modules/
-cloudflared/credentials.json
 *.log
 .paperclip.pid

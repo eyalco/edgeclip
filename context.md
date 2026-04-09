@@ -9,7 +9,7 @@ host for direct filesystem and Docker access.
 - **Paperclip server**: Runs on the host via the `paperclipai` npm package (`paperclipai run`)
 - **Claude Code CLI**: Runs on the host with full system access (filesystem, Docker, etc.)
 - **PostgreSQL 17**: Docker container, exposed on localhost:5432
-- **Cloudflared**: Docker container (host network), tunnels public domain traffic to localhost:3100
+- **Cloudflared**: Docker container (host network), token-based auth, ingress managed remotely in Cloudflare dashboard
 - Paperclip binds to `127.0.0.1` by default (loopback only); set `EDGECLIP_BIND_HOST=0.0.0.0` for local dev with Docker Desktop
 - No ports exposed to the internet; all traffic via Cloudflare Tunnel
 
@@ -31,6 +31,4 @@ host for direct filesystem and Docker access.
 
 ## Subfolders
 
-| Folder | Purpose |
-|---|---|
-| `cloudflared/` | Tunnel config (config.yml) and credentials (credentials.json, gitignored) |
+None — all configuration is via `.env` and the Cloudflare dashboard.
