@@ -3,10 +3,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-echo "Stopping Docker services (PostgreSQL + Cloudflared)..."
+echo "Stopping EdgeClip..."
+
+# Stop Docker infrastructure (PostgreSQL + Cloudflare Tunnel)
 docker compose -f "$SCRIPT_DIR/docker-compose.yml" down
 
 echo ""
-echo "Docker services stopped."
-echo "If Paperclip is running in the foreground, press Ctrl+C in that terminal."
-echo "If running via systemd: sudo systemctl stop edgeclip"
+echo "All services stopped."
+echo "Note: if the Paperclip server is running in a terminal, press Ctrl+C to stop it."

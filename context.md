@@ -1,33 +1,36 @@
 # EdgeClip — Context
 
-Turnkey deployment project for Paperclip agent orchestration with PostgreSQL and
-Cloudflare Tunnel. Designed for a Linux VPS where Claude Code runs on the host.
+Host-based deployment of Paperclip agent orchestration with Docker infrastructure
+(PostgreSQL + Cloudflare Tunnel). Paperclip and Claude Code run natively on the
+host for direct filesystem and Docker access.
 
 ## Architecture
 
-- **Host**: Paperclip Node.js server + Claude Code CLI (Max plan)
-- **Docker**: PostgreSQL 17 (data) + Cloudflared (ingress tunnel)
+- **Paperclip server**: Runs on the host via the `paperclipai` npm package (`paperclipai run`)
+- **Claude Code CLI**: Runs on the host with full system access (filesystem, Docker, etc.)
+- **PostgreSQL 17**: Docker container, exposed on localhost:5432
+- **Cloudflared**: Docker container (host network), tunnels public domain traffic to localhost:3100
+- Paperclip binds to `127.0.0.1` by default (loopback only); set `EDGECLIP_BIND_HOST=0.0.0.0` for local dev with Docker Desktop
 - No ports exposed to the internet; all traffic via Cloudflare Tunnel
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `docker-compose.yml` | Defines PostgreSQL and Cloudflared Docker services |
-| `.env.example` | Template for environment variables (passwords, tokens, domain) |
-| `setup.sh` | One-time setup: clones Paperclip, installs deps, builds, creates `.env` |
-| `start.sh` | Starts Docker infra + Paperclip server in foreground |
-| `start-service.sh` | Headless Paperclip startup for systemd (skips docker compose) |
-| `stop.sh` | Stops Docker services |
+| `docker-compose.yml` | Defines infrastructure services: db (PostgreSQL) and cloudflared |
+| `.env.example` | Template for environment variables (passwords, domain, secrets) |
+| `setup.sh` | One-time setup: installs paperclipai globally, creates `.env` |
+| `start.sh` | Starts Docker infra + Paperclip server on host (foreground) |
+| `stop.sh` | Stops Docker infrastructure |
+| `start-service.sh` | Headless startup for systemd (Paperclip as background process) |
 | `edgeclip.service` | Systemd unit file for boot-persistent production deployment |
 | `Makefile` | Convenience targets: setup, start, stop, restart, logs, update, etc. |
-| `.gitignore` | Excludes `.env`, `data/`, `paperclip/` (cloned at setup time) |
+| `.gitignore` | Excludes `.env`, `data/`, logs, PID file |
 | `README.md` | Full setup and usage instructions |
 | `context.md` | This file — project overview and file index |
 
-## Subfolders (created at runtime)
+## Subfolders
 
 | Folder | Purpose |
 |---|---|
-| `paperclip/` | Cloned Paperclip repo (gitignored, created by `setup.sh`) |
-| `data/paperclip/` | Paperclip runtime data — secrets, sessions, config (gitignored) |
+| `cloudflared/` | Tunnel config (config.yml) and credentials (credentials.json, gitignored) |

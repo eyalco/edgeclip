@@ -1,4 +1,4 @@
-# Systemd unit for EdgeClip (Paperclip + infra).
+# Systemd unit for EdgeClip (host-based Paperclip + Docker infrastructure).
 #
 # Install:
 #   sudo cp edgeclip.service /etc/systemd/system/
@@ -7,6 +7,7 @@
 #
 # Logs:
 #   journalctl -u edgeclip -f
+#   tail -f /root/edgeclip/paperclip.log
 #
 # Adjust WorkingDirectory and User if your layout differs.
 
@@ -17,11 +18,10 @@ Requires=docker.service
 Wants=network-online.target
 
 [Service]
-Type=simple
+Type=forking
+PIDFile=/root/edgeclip/.paperclip.pid
 User=root
 WorkingDirectory=/root/edgeclip
-EnvironmentFile=/root/edgeclip/.env
-ExecStartPre=/usr/bin/docker compose -f /root/edgeclip/docker-compose.yml up -d
 ExecStart=/root/edgeclip/start-service.sh
 ExecStop=/root/edgeclip/stop.sh
 Restart=on-failure

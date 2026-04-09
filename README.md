@@ -1,6 +1,6 @@
 # EdgeClip
 
-Turnkey deployment of [Paperclip](https://github.com/paperclipai/paperclip) agent orchestration with PostgreSQL and Cloudflare Tunnel.
+Turnkey deployment of [Paperclip](https://github.com/paperclipai/paperclip) agent orchestration with PostgreSQL and Cloudflare Tunnel. Paperclip and Claude Code run natively on the host for direct system access.
 
 ## Architecture
 
@@ -8,41 +8,43 @@ Turnkey deployment of [Paperclip](https://github.com/paperclipai/paperclip) agen
 Internet
   │
   ▼
-Cloudflare Tunnel (Docker) ──► https://paperclip.yourdomain.com
+Cloudflare Tunnel (Docker) ──► https://edgeclip.yourdomain.com
   │
   ▼
 Paperclip Server (host, port 3100)
-  ├── Claude Code CLI (host, Max plan)
-  └── PostgreSQL 17 (Docker, port 5432 localhost-only)
+  ├── Claude Code CLI (host, full system access)
+  └── PostgreSQL 17 (Docker, port 5432)
 ```
 
-- **Paperclip + Claude Code** run on the host for native filesystem and git access
-- **PostgreSQL** runs in Docker for clean data isolation
-- **Cloudflare Tunnel** runs in Docker, proxies your domain to localhost:3100
-- No ports exposed to the internet — all traffic goes through the tunnel
+- **Paperclip server** runs on the host via the `paperclipai` npm package
+- **Claude Code CLI** runs on the host with full filesystem and Docker access
+- **PostgreSQL** runs in Docker, exposed on `localhost:5432`
+- **Cloudflare Tunnel** runs in Docker (host network), proxies your domain to `localhost:3100`
+- No ports exposed to the internet — Paperclip binds to `127.0.0.1` by default, all traffic goes through the tunnel
 
 ## Prerequisites
 
-- Linux VPS with Docker and Docker Compose
-- Node.js 20+ and pnpm 9+
-- A Cloudflare account with a domain
-- Claude Max plan (or an Anthropic API key)
+- **Node.js** v20+
+- **Docker** and Docker Compose (for PostgreSQL + Cloudflare Tunnel)
+- **Claude Code CLI** (`npm install -g @anthropic-ai/claude-code`)
+- A **Cloudflare account** with a domain
+- **Claude Max plan** (or an Anthropic API key)
 
 ## Quick Start
 
 ```bash
-# 1. Clone this repo on your VPS
+# 1. Clone this repo
 git clone https://github.com/YOUR_USER/edgeclip.git
 cd edgeclip
 
-# 2. Run setup (clones Paperclip, installs deps, builds)
+# 2. Run setup (installs paperclipai globally, creates .env)
 chmod +x setup.sh start.sh stop.sh start-service.sh
 ./setup.sh
 
 # 3. Edit .env with your values
 nano .env
 
-# 4. Start everything
+# 4. Start everything (Ctrl+C to stop)
 ./start.sh
 ```
 
@@ -51,23 +53,19 @@ nano .env
 | Variable | Required | How to get |
 |---|---|---|
 | `POSTGRES_PASSWORD` | Yes | `openssl rand -base64 24` |
-| `CLOUDFLARE_TUNNEL_TOKEN` | Yes | Zero Trust → Networks → Tunnels → Create |
 | `PAPERCLIP_DOMAIN` | Yes | The public hostname you configured in the tunnel |
 | `BETTER_AUTH_SECRET` | Yes | `openssl rand -base64 32` |
 | `PAPERCLIP_SECRETS_MASTER_KEY` | Recommended | `openssl rand -base64 32` |
-| `CLAUDE_CODE_OAUTH_TOKEN` | For Max plan | `claude setup-token` (on a machine with a browser) |
+| `EDGECLIP_BIND_HOST` | No | `127.0.0.1` (default) or `0.0.0.0` for local dev with Docker Desktop |
 
 ## Cloudflare Tunnel Setup
 
-1. Go to [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) → Networks → Tunnels
-2. Create a tunnel, name it (e.g. `edgeclip`)
-3. Copy the tunnel token into `.env` as `CLOUDFLARE_TUNNEL_TOKEN`
-4. Add a public hostname:
-   - **Subdomain:** `paperclip` (or your choice)
-   - **Domain:** your domain
-   - **Service:** `http://localhost:3100`
-
-Optional: add a Cloudflare Access policy for an extra authentication layer.
+1. Install `cloudflared` locally: `brew install cloudflared` or [download](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)
+2. Authenticate: `cloudflared tunnel login`
+3. Create tunnel: `cloudflared tunnel create edgeclip`
+4. Route DNS: `cloudflared tunnel route dns edgeclip edgeclip.yourdomain.com`
+5. Copy the credentials JSON from `~/.cloudflared/<TUNNEL_ID>.json` into `cloudflared/credentials.json`
+6. Update `cloudflared/config.yml` with your tunnel ID and hostname
 
 ## First Login
 
@@ -83,18 +81,18 @@ Visit `https://YOUR_DOMAIN/board-claim/<token>?code=<code>` to claim admin owner
 
 | Command | What it does |
 |---|---|
-| `./setup.sh` | One-time: clone, install, build, create .env |
-| `./start.sh` | Start Docker infra + Paperclip (foreground) |
-| `./stop.sh` | Stop Docker infra |
+| `./setup.sh` | One-time: install paperclipai, create .env |
+| `./start.sh` | Start DB + tunnel + Paperclip server (foreground, Ctrl+C to stop) |
+| `./stop.sh` | Stop Docker infrastructure (DB + tunnel) |
 | `make status` | Show running services |
-| `make logs` | Tail Docker logs |
+| `make logs` | Tail Docker logs (DB + tunnel) |
 | `make db-shell` | Open psql shell |
-| `make update` | Pull latest Paperclip + rebuild |
+| `make update` | Update paperclipai to latest version |
 | `make restart` | Stop + start |
 
 ## Running as a systemd Service
 
-For production, install the systemd unit so EdgeClip starts on boot:
+For production on a Linux server:
 
 ```bash
 # Adjust paths in edgeclip.service if not at /root/edgeclip
@@ -104,15 +102,5 @@ sudo systemctl enable --now edgeclip
 
 # View logs
 journalctl -u edgeclip -f
+tail -f paperclip.log
 ```
-
-## Adding Remote Agents (Server 1, etc.)
-
-Paperclip runs as the control plane on this VPS. To run Claude Code on additional
-servers, use the **HTTP adapter**:
-
-1. Set up a webhook listener on the remote server
-2. Create an agent in Paperclip with `adapterType: "http"` pointing at the remote endpoint
-3. The remote agent calls back to `https://YOUR_DOMAIN/api/...` to report results
-
-All agents appear in one dashboard regardless of where they execute.

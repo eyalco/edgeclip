@@ -18,19 +18,14 @@ db-shell:
 	docker compose exec db psql -U paperclip paperclip
 
 status:
-	@echo "── Docker ──"
 	@docker compose ps
 	@echo ""
-	@echo "── Paperclip process ──"
-	@ps aux | grep 'server/dist/index.js' | grep -v grep || echo "Not running"
+	@if [ -f .paperclip.pid ] && kill -0 $$(cat .paperclip.pid) 2>/dev/null; then \
+		echo "Paperclip server: running (PID $$(cat .paperclip.pid))"; \
+	else \
+		echo "Paperclip server: not running"; \
+	fi
 
 update:
-	cd paperclip && git pull --ff-only
-	cd paperclip && pnpm install --frozen-lockfile
-	cd paperclip && pnpm --filter @paperclipai/shared build 2>/dev/null || true
-	cd paperclip && pnpm --filter @paperclipai/db build 2>/dev/null || true
-	cd paperclip && pnpm --filter @paperclipai/adapter-utils build 2>/dev/null || true
-	cd paperclip && pnpm --filter @paperclipai/plugin-sdk build
-	cd paperclip && pnpm --filter @paperclipai/ui build
-	cd paperclip && pnpm --filter @paperclipai/server build
+	npm update -g paperclipai
 	@echo "Updated. Restart with: make restart"
