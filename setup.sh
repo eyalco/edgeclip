@@ -41,7 +41,9 @@ if command -v paperclipai &>/dev/null; then
   echo "  paperclipai already installed ($(paperclipai --version 2>/dev/null || echo 'unknown version'))"
   echo "  To update: npm update -g paperclipai"
 else
-  npm install -g paperclipai
+  SUDO=""
+  if [ "$(id -u)" -ne 0 ]; then SUDO="sudo"; fi
+  $SUDO npm install -g paperclipai
   echo "  Installed paperclipai $(paperclipai --version 2>/dev/null || echo '')"
 fi
 
